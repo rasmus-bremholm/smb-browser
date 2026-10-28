@@ -32,4 +32,7 @@ dependencies {
     implementation(platform("androidx.compose:compose-bom:2026.09.00"))
     implementation("androidx.compose.material3:material3")
     implementation("androidx.activity:activity-compose:1.13.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.11.0")
+    implementation("com.hierynomus:smbj:0.15.0")
+    implementation("com.rapid7.client:dcerpc:0.12.13") // smbj-rpc: share listing
 }
