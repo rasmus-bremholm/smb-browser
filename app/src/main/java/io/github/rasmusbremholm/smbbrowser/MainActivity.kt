@@ -1,12 +1,18 @@
 package io.github.rasmusbremholm.smbbrowser
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.text.format.DateFormat
 import android.text.format.Formatter
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -24,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -94,6 +101,26 @@ private fun BrowseScreen(vm: BrowserViewModel) {
     val context = LocalContext.current
     val dateFormat = remember { DateFormat.getMediumDateFormat(context) }
 
+    // Android 8-9 need a runtime permission to write to Downloads.
+    var pendingSave by remember { mutableStateOf<Entry?>(null) }
+    val askStorage = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        val entry = pendingSave
+        pendingSave = null
+        if (entry == null) return@rememberLauncherForActivityResult
+        if (granted) vm.save(entry)
+        else Toast.makeText(context, "Storage permission is needed to save to Downloads", Toast.LENGTH_SHORT).show()
+    }
+    fun save(entry: Entry) {
+        if (Build.VERSION.SDK_INT < 29 &&
+            context.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
+        ) {
+            pendingSave = entry
+            askStorage.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        } else {
+            vm.save(entry)
+        }
+    }
+
     Column {
         Text(
             if (vm.location.isEmpty()) "Shares" else vm.location.joinToString(" / "),
@@ -101,10 +128,21 @@ private fun BrowseScreen(vm: BrowserViewModel) {
             style = MaterialTheme.typography.titleMedium,
         )
         vm.error?.let { Text(it, Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.error) }
+        vm.transfer?.let { t ->
+            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("${t.label} · ${t.percent}%", style = MaterialTheme.typography.bodySmall)
+                    LinearProgressIndicator({ t.percent / 100f }, Modifier.fillMaxWidth())
+                }
+                TextButton(vm::cancelTransfer) { Text("Cancel") }
+            }
+        }
         LazyColumn(Modifier.fillMaxSize()) {
             items(vm.items, key = { it.name }) { entry ->
                 Row(
-                    Modifier.fillMaxWidth().clickable(enabled = entry.isFolder) { vm.enter(entry) }.padding(16.dp),
+                    Modifier.fillMaxWidth()
+                        .clickable(enabled = entry.isFolder || vm.transfer == null) { if (entry.isFolder) vm.enter(entry) else vm.openFile(entry) }
+                        .padding(16.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -120,6 +158,7 @@ private fun BrowseScreen(vm: BrowserViewModel) {
                             )
                         }
                     }
+                    if (!entry.isFolder) TextButton({ save(entry) }, enabled = vm.transfer == null) { Text("Save") }
                 }
             }
         }
