@@ -1,0 +1,36 @@
+name: Release dev build
+
+on:
+    push:
+        branches: [main]
+    workflow_dispatch:
+
+permissions:
+    contents: write
+
+concurrency:
+    group: release
+    cancel-in-progress: false
+
+jobs:
+    release:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v7
+            - uses: actions/setup-java@v6
+              with:
+                  distribution: temurin
+                  java-version: 21
+            - uses: gradle/actions/setup-gradle@v6
+            - run: ./gradlew assembleDebug -PbuildNumber=${{ github.run_number }}
+            - name: Publish pre-release
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  VERSION: 0.0.${{ github.run_number }}
+              run: |
+                  cp app/build/outputs/apk/debug/app-debug.apk "smb-browser-$VERSION.apk"
+                  gh release create "v$VERSION" "smb-browser-$VERSION.apk" \
+                    --prerelease \
+                    --target "$GITHUB_SHA" \
+                    --title "Dev build $VERSION" \
+                    --generate-notes

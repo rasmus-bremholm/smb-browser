@@ -6,7 +6,13 @@ Read-only Android SMB2/3 browser. Kotlin + Jetpack Compose, single `:app` module
 
 - `./gradlew assembleDebug` → `app/build/outputs/apk/debug/app-debug.apk`
 - Needs JDK 21 and an Android SDK (`ANDROID_HOME` or `local.properties`).
-- CI (`.github/workflows/build.yml`) builds the debug APK on every PR and uploads it unzipped. That APK is how changes get tested.
+- CI (`.github/workflows/build.yml`) builds the debug APK on every PR and uploads it unzipped.
+- Every push to `main` runs `.github/workflows/release.yml`, which publishes the APK as a GitHub pre-release `v0.0.<run>`. The stakeholder installs these through Obtainium, so a merge = an update on his phone.
+
+## Project docs
+
+- The plan, decision log and handoff are private and live outside this repo. The stakeholder gives access at the start of each thread (vault or `Notes` repo).
+- Update HANDOFF and DECISIONS there before ending every thread. Never write them into the gitignored `documentation/` folder; it is not the source of truth.
 
 ## Conventions
 
