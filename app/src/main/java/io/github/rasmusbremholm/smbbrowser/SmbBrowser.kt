@@ -30,7 +30,7 @@ class SmbBrowser private constructor(
     // Browsing and a download can touch this from different IO threads.
     private val shares = ConcurrentHashMap<String, DiskShare>()
 
-    private fun disk(share: String) = shares.getOrPut(share) { session.connectShare(share) as DiskShare }
+    private fun disk(share: String) = shares.computeIfAbsent(share) { session.connectShare(it) as DiskShare }
 
     suspend fun listShares(): List<String> = withContext(Dispatchers.IO) {
         val transport = SMBTransportFactories.SRVSVC.getTransport(session)

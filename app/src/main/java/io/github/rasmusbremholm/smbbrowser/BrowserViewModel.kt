@@ -159,6 +159,11 @@ class BrowserViewModel(private val app: Application) : AndroidViewModel(app) {
     ) {
         val browser = smb ?: return
         if (transferJob?.isActive == true) return
+        // Server-supplied name becomes a local file name; refuse anything that could escape the target folder.
+        if ('/' in entry.name || '\\' in entry.name || entry.name == "." || entry.name == "..") {
+            error = "Can't download a file named \"${entry.name}\"."
+            return
+        }
         // Captured now: the user may browse elsewhere while this runs.
         val share = location.first()
         val path = (location.drop(1) + entry.name).joinToString("\\")
@@ -170,7 +175,7 @@ class BrowserViewModel(private val app: Application) : AndroidViewModel(app) {
                 withContext(Dispatchers.IO) {
                     block { out ->
                         browser.read(share, path, out) { done ->
-                            val percent = if (entry.size > 0) (done * 100 / entry.size).toInt() else 0
+                            val percent = if (entry.size > 0) (done * 100 / entry.size).toInt().coerceAtMost(100) else 0
                             if (percent != transfer?.percent) transfer = Transfer(label, percent)
                         }
                     }

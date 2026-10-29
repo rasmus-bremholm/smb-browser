@@ -141,7 +141,7 @@ private fun BrowseScreen(vm: BrowserViewModel) {
             items(vm.items, key = { it.name }) { entry ->
                 Row(
                     Modifier.fillMaxWidth()
-                        .clickable { if (entry.isFolder) vm.enter(entry) else vm.openFile(entry) }
+                        .clickable(enabled = entry.isFolder || vm.transfer == null) { if (entry.isFolder) vm.enter(entry) else vm.openFile(entry) }
                         .padding(16.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -158,7 +158,7 @@ private fun BrowseScreen(vm: BrowserViewModel) {
                             )
                         }
                     }
-                    if (!entry.isFolder) TextButton({ save(entry) }) { Text("Save") }
+                    if (!entry.isFolder) TextButton({ save(entry) }, enabled = vm.transfer == null) { Text("Save") }
                 }
             }
         }
